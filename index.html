@@ -2,539 +2,691 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Scan barcode local + export CSV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Scan barcode local + export CSV (Quagga rapide)</title>
   <style>
-    :root{
-      --bg:#f6f8fb;
-      --card:#ffffff;
-      --text:#0f172a;
-      --muted:#64748b;
-      --border:#dbe3ee;
-      --primary:#1d4ed8;
-      --primary-2:#1e40af;
-      --success:#0f766e;
-      --danger:#b91c1c;
-      --warning:#92400e;
-      --shadow:0 10px 25px rgba(15,23,42,.08);
-      --radius:18px;
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --line: #334155;
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --accent: #38bdf8;
+      --ok: #22c55e;
+      --bad: #ef4444;
+      --warn: #f59e0b;
+      --shadow: 0 10px 30px rgba(0,0,0,.28);
+      --radius: 18px;
     }
-
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    body{padding:16px}
-
-    .container{max-width:1100px;margin:0 auto;display:grid;gap:16px}
-    .grid{display:grid;gap:16px;grid-template-columns:1.05fr .95fr}
-    @media (max-width: 900px){.grid{grid-template-columns:1fr}}
-
-    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-    .card-header{padding:18px 18px 8px}
-    .card-body{padding:18px}
-    .title{margin:0 0 6px;font-size:1.5rem;line-height:1.2;font-weight:700}
-    .subtitle{margin:0;color:var(--muted);font-size:.96rem;line-height:1.5}
-    .badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-    .badge{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-size:.8rem;border:1px solid var(--border);background:#fff;color:#334155}
-    .badge.primary{background:#e8efff;border-color:#c7d7ff;color:#1e3a8a}
-    .btn-row{display:grid;gap:12px;grid-template-columns:1fr 1fr;margin-bottom:14px}
-    @media (max-width: 640px){.btn-row{grid-template-columns:1fr}}
-
-    button{appearance:none;border:none;border-radius:14px;padding:14px 16px;font-size:1rem;font-weight:600;cursor:pointer;transition:.15s ease}
-    button:disabled{opacity:.55;cursor:not-allowed}
-    .btn-primary{background:var(--primary);color:#fff}
-    .btn-primary:hover:not(:disabled){background:var(--primary-2)}
-    .btn-secondary{background:#e2e8f0;color:#0f172a}
-    .btn-secondary:hover:not(:disabled){background:#cbd5e1}
-    .btn-outline{background:#fff;color:#0f172a;border:1px solid var(--border)}
-    .btn-outline:hover:not(:disabled){background:#f8fafc}
-
-    .reader-wrap{border:1px solid var(--border);border-radius:16px;overflow:hidden;background:#000;min-height:280px;margin-bottom:14px}
-    #reader{width:100%}
-    #reader video{width:100% !important;height:auto !important;display:block}
-
-    .status-box,.info-box,.error-box,.success-box{border-radius:16px;padding:14px;font-size:.95rem;line-height:1.5}
-    .status-box{border:1px solid var(--border);background:#fff;color:#334155}
-    .info-box{border:1px solid #dbeafe;background:#eff6ff;color:#1e3a8a}
-    .error-box{border:1px solid #fecaca;background:#fef2f2;color:#991b1b}
-    .success-box{border:1px solid #99f6e4;background:#f0fdfa;color:#115e59}
-
-    .field{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
-    label{font-size:.92rem;font-weight:600;color:#334155}
-    input{width:100%;min-height:48px;border-radius:14px;border:1px solid var(--border);padding:12px 14px;font-size:1rem;outline:none;background:#fff}
-    input:focus{border-color:#93c5fd;box-shadow:0 0 0 4px rgba(59,130,246,.12)}
-    .input-row{display:grid;grid-template-columns:1fr auto;gap:10px}
-
-    .meta{border:1px solid var(--border);background:#f8fafc;border-radius:16px;padding:14px;font-size:.95rem;color:#334155;margin-bottom:14px}
-    .separator{height:1px;background:var(--border);margin:16px 0}
-
-    .history-top{display:grid;gap:12px;grid-template-columns:1fr 320px;align-items:center}
-    @media (max-width: 800px){.history-top{grid-template-columns:1fr}}
-    .history-list{display:grid;gap:12px}
-    .history-item{border:1px solid var(--border);border-radius:16px;background:#fff;padding:14px;display:grid;gap:10px;grid-template-columns:1.2fr 1fr .9fr}
-    @media (max-width: 800px){.history-item{grid-template-columns:1fr}}
-    .history-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px}
-    .history-value{font-size:.98rem;color:#0f172a;word-break:break-word;font-weight:600}
-    .empty{border:1px dashed var(--border);border-radius:16px;padding:28px;text-align:center;color:var(--muted);background:#fff}
-    .small{font-size:.85rem;color:var(--muted);line-height:1.5}
-    .footer-note{font-size:.82rem;color:var(--muted);margin-top:10px;line-height:1.45}
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    body { min-height: 100vh; }
+    .wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: max(14px, env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+    }
+    .card {
+      background: rgba(17,24,39,.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(148,163,184,.16);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+    .title { font-size: 1.45rem; font-weight: 780; margin: 0 0 6px; }
+    .subtitle { color: var(--muted); margin: 0 0 12px; line-height: 1.4; }
+    .pill {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(56,189,248,.12);
+      border: 1px solid rgba(56,189,248,.18);
+      color: #bae6fd;
+      font-size: .84rem;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+    .grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 14px; }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+    .video-wrap {
+      position: relative;
+      overflow: hidden;
+      background: #000;
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,.18);
+      aspect-ratio: 3 / 4;
+    }
+    #scanner, #scanner video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      background: #000;
+    }
+    #scanner canvas, #scanner video { position: absolute; inset: 0; }
+    .guide { position: absolute; inset: 0; pointer-events: none; }
+    .guide::before {
+      content: '';
+      position: absolute;
+      left: 5%; right: 5%; top: 43%; height: 14%;
+      border: 3px solid rgba(56,189,248,.95);
+      border-radius: 14px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,.18) inset;
+    }
+    .guide::after {
+      content: 'Place le code dans la bande bleue, bien horizontal';
+      position: absolute; left: 0; right: 0; top: 60%;
+      text-align: center; font-size: .92rem; font-weight: 700;
+      color: #e2e8f0; text-shadow: 0 2px 8px rgba(0,0,0,.65);
+      padding: 0 10px;
+    }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      width: 100%;
+      background: rgba(15,23,42,.85);
+      border: 1px solid rgba(148,163,184,.16);
+      border-radius: 14px;
+      padding: 10px 12px;
+      color: var(--muted);
+      line-height: 1.3;
+      margin-top: 12px;
+    }
+    .status-dot { width: 10px; height: 10px; border-radius: 999px; background: var(--warn); flex: 0 0 auto; }
+    .status.ok .status-dot { background: var(--ok); }
+    .status.bad .status-dot { background: var(--bad); }
+    .status.scan .status-dot { background: var(--accent); animation: pulse 1.1s infinite; }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: .65; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .btns2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    button {
+      appearance: none; border: 0; border-radius: 14px; padding: 14px 12px;
+      font-weight: 760; font-size: .98rem; cursor: pointer; min-height: 52px;
+    }
+    .btn-primary { background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%); color: #082f49; }
+    .btn-secondary { background: #334155; color: #f8fafc; }
+    .btn-torch { background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%); color: #422006; }
+    .btn-torch.active { background: linear-gradient(180deg, #fde68a 0%, #fbbf24 100%); color: #422006; }
+    .btn-ghost { background: #1e293b; color: #e2e8f0; }
+    .btn-ok { background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%); color: #052e16; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    @media (max-width: 430px) {
+      .btns, .btns2 { grid-template-columns: 1fr; }
+    }
+    .tips, .meta, .hint, .small {
+      color: var(--muted);
+      font-size: .92rem;
+      line-height: 1.4;
+    }
+    .tips, .meta { margin-top: 10px; }
+    .field { margin-top: 12px; }
+    label { display: block; font-size: .92rem; font-weight: 700; margin-bottom: 8px; }
+    .input-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+    input[type='text'] {
+      width: 100%;
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid rgba(148,163,184,.2);
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 16px;
+      min-height: 52px;
+    }
+    .meta-box {
+      margin-top: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,.16);
+      background: rgba(15,23,42,.9);
+      padding: 14px;
+    }
+    .history-top { display: grid; grid-template-columns: 1fr 280px; gap: 10px; align-items: center; }
+    @media (max-width: 700px) { .history-top { grid-template-columns: 1fr; } }
+    .history-list { display: grid; gap: 10px; margin-top: 12px; }
+    .history-item {
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,.16);
+      background: rgba(15,23,42,.9);
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr .8fr;
+      gap: 10px;
+    }
+    @media (max-width: 700px) { .history-item { grid-template-columns: 1fr; } }
+    .k { color: var(--muted); font-size: .82rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+    .v { font-weight: 700; word-break: break-all; }
+    .empty {
+      border-radius: 16px;
+      border: 1px dashed rgba(148,163,184,.25);
+      background: rgba(15,23,42,.65);
+      color: var(--muted);
+      padding: 24px;
+      text-align: center;
+      margin-top: 12px;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="grid">
-      <section class="card">
-        <div class="card-header">
-          <div class="badges">
-            <span class="badge primary">App web statique</span>
-            <span class="badge">Code 128</span>
-            <span class="badge">Stockage local</span>
-            <span class="badge">Export CSV</span>
-          </div>
-          <h1 class="title">Scan barcode + stockage local + export CSV</h1>
-          <p class="subtitle">
-            Scan caméra via librairie JS, saisie manuelle possible, puis export CSV pour intégration manuelle dans Excel.
-          </p>
-        </div>
-        <div class="card-body">
-          <div class="btn-row">
-            <button id="btnStart" class="btn-primary">Démarrer le scan</button>
-            <button id="btnStop" class="btn-secondary" disabled>Arrêter le scan</button>
-          </div>
-
-          <div class="reader-wrap">
-            <div id="reader"></div>
-          </div>
-
-          <div id="statusBox" class="status-box">
-            <strong>Statut :</strong> <span id="statusText">Prêt</span>
-          </div>
-
-          <div id="supportBox" class="info-box" style="margin-top:12px;">
-            Vérification de l'environnement en cours...
-          </div>
-
-          <div id="messageBox" class="success-box" style="display:none; margin-top:12px;"></div>
-          <div id="errorBox" class="error-box" style="display:none; margin-top:12px;"></div>
-
-          <div class="separator"></div>
-
-          <div class="field">
-            <label for="fileInput">Ou décoder depuis une photo</label>
-            <input id="fileInput" type="file" accept="image/*" />
-          </div>
-
-          <p class="footer-note">
-            La photo est décodée localement dans le navigateur, sans envoi au serveur.
-          </p>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-header">
-          <h2 class="title" style="font-size:1.25rem;">Enregistrement</h2>
-          <p class="subtitle">Le barcode peut venir du scan, d'une photo ou être saisi à la main.</p>
-        </div>
-        <div class="card-body">
-          <div class="field">
-            <label for="barcodeInput">Barcode</label>
-            <div class="input-row">
-              <input id="barcodeInput" type="text" placeholder="Code 128 détecté ou saisi manuellement" />
-              <button id="btnClearBarcode" class="btn-outline" type="button">Effacer</button>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="manualInput">Valeur manuelle</label>
-            <input id="manualInput" type="text" placeholder="Ex. commentaire, état, quantité..." />
-          </div>
-
-          <div class="meta">
-            <div><strong>Date/heure :</strong> <span id="liveDate"></span></div>
-            <div style="margin-top:6px;"><strong>Barcode courant :</strong> <span id="currentBarcode">—</span></div>
-          </div>
-
-          <button id="btnSave" class="btn-primary" style="width:100%;">Enregistrer la ligne</button>
-
-          <div class="separator"></div>
-
-          <div class="btn-row">
-            <button id="btnExport" class="btn-secondary">Exporter CSV</button>
-            <button id="btnClearAll" class="btn-outline">Vider l'historique</button>
-          </div>
-
-          <p class="small">
-            Format export : <strong>Barcode ; DateScan ; ValeurManuelle</strong>
-          </p>
-        </div>
-      </section>
+  <div class="wrap">
+    <div class="card">
+      <h1 class="title">Scan barcode + stockage local + export CSV</h1>
+      <p class="subtitle">Version rapide avec le même moteur de scan que ton fichier efficace : Quagga2 optimisé Code 128.</p>
+      <div>
+        <span class="pill">Quagga2</span>
+        <span class="pill">Code 128 uniquement</span>
+        <span class="pill">Zone centrale serrée</span>
+        <span class="pill">Torche</span>
+        <span class="pill">CSV local</span>
+      </div>
     </div>
 
-    <section class="card">
-      <div class="card-header">
-        <div class="history-top">
-          <div>
-            <h2 class="title" style="font-size:1.25rem;">Historique local</h2>
-            <p class="subtitle"><span id="countText">0</span> ligne(s) stockée(s) dans ce navigateur.</p>
-          </div>
-          <div>
-            <input id="searchInput" type="text" placeholder="Rechercher barcode, valeur, date..." />
+    <div class="grid">
+      <div class="card">
+        <div class="video-wrap">
+          <div id="scanner"></div>
+          <div class="guide"></div>
+        </div>
+
+        <div id="status" class="status" role="status" aria-live="polite">
+          <span class="status-dot"></span>
+          <span id="statusText">Prêt. Appuie sur « Autoriser & scanner ».</span>
+        </div>
+
+        <div class="btns">
+          <button id="btnStart" class="btn-primary">Autoriser & scanner</button>
+          <button id="btnStop" class="btn-secondary" disabled>Arrêter</button>
+          <button id="btnTorch" class="btn-torch" type="button" disabled>Torche</button>
+        </div>
+
+        <div class="tips">
+          Pour lire plus vite : éloigne légèrement le téléphone, garde le code horizontal, et fais remplir la bande bleue sur presque toute la largeur.
+        </div>
+
+        <div class="meta" id="meta">Les scans sont stockés localement dans ce navigateur.</div>
+      </div>
+
+      <div class="card">
+        <div class="field">
+          <label for="barcodeInput">Barcode</label>
+          <div class="input-row">
+            <input id="barcodeInput" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Code 128 détecté ou saisi manuellement" />
+            <button id="btnClearBarcode" class="btn-ghost" type="button">Effacer</button>
           </div>
         </div>
+
+        <div class="field">
+          <label for="manualInput">Valeur manuelle</label>
+          <input id="manualInput" type="text" placeholder="Ex. commentaire, état, quantité..." />
+        </div>
+
+        <div class="meta-box">
+          <div><span class="k">Date / heure</span><div class="v" id="liveDate"></div></div>
+          <div style="margin-top:10px;"><span class="k">Barcode courant</span><div class="v" id="currentBarcode">—</div></div>
+        </div>
+
+        <div class="btns2">
+          <button id="btnSave" class="btn-ok">Enregistrer la ligne</button>
+          <button id="btnExport" class="btn-secondary">Exporter CSV</button>
+        </div>
+        <div class="btns2">
+          <button id="btnClearAll" class="btn-ghost">Vider l'historique</button>
+          <button id="btnUseManual" class="btn-secondary">Utiliser le code saisi</button>
+        </div>
+
+        <p class="small">Format export : <strong>Barcode ; DateScan ; ValeurManuelle</strong></p>
       </div>
-      <div class="card-body">
-        <div id="historyList" class="history-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="history-top">
+        <div>
+          <h2 class="title" style="font-size:1.15rem;">Historique local</h2>
+          <p class="subtitle"><span id="countText">0</span> ligne(s) stockée(s) dans ce navigateur.</p>
+        </div>
+        <div>
+          <input id="searchInput" type="text" placeholder="Rechercher barcode, valeur, date..." />
+        </div>
       </div>
-    </section>
+      <div id="historyList" class="history-list"></div>
+    </div>
   </div>
 
-  <script src="https://unpkg.com/html5-qrcode"></script>
   <script>
-    (function () {
-      const STORAGE_KEY = "scan_barcode_local_csv_v2";
+    const STORAGE_KEY = 'scan_barcode_local_csv_quagga_v1';
 
-      const btnStart = document.getElementById("btnStart");
-      const btnStop = document.getElementById("btnStop");
-      const btnSave = document.getElementById("btnSave");
-      const btnExport = document.getElementById("btnExport");
-      const btnClearAll = document.getElementById("btnClearAll");
-      const btnClearBarcode = document.getElementById("btnClearBarcode");
+    const statusEl = document.getElementById('status');
+    const statusTextEl = document.getElementById('statusText');
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const btnTorch = document.getElementById('btnTorch');
+    const btnSave = document.getElementById('btnSave');
+    const btnExport = document.getElementById('btnExport');
+    const btnClearAll = document.getElementById('btnClearAll');
+    const btnUseManual = document.getElementById('btnUseManual');
+    const btnClearBarcode = document.getElementById('btnClearBarcode');
+    const barcodeInput = document.getElementById('barcodeInput');
+    const manualInput = document.getElementById('manualInput');
+    const searchInput = document.getElementById('searchInput');
+    const scannerEl = document.getElementById('scanner');
+    const metaEl = document.getElementById('meta');
+    const liveDateEl = document.getElementById('liveDate');
+    const currentBarcodeEl = document.getElementById('currentBarcode');
+    const historyListEl = document.getElementById('historyList');
+    const countTextEl = document.getElementById('countText');
 
-      const barcodeInput = document.getElementById("barcodeInput");
-      const manualInput = document.getElementById("manualInput");
-      const searchInput = document.getElementById("searchInput");
-      const fileInput = document.getElementById("fileInput");
+    let permissionPrimed = false;
+    let engineLoaded = false;
+    let activePrimeStream = null;
+    let lastDetected = '';
+    let lastDetectedAt = 0;
+    let started = false;
+    let onDetectedHandler = null;
+    let onProcessedHandler = null;
+    let torchEnabled = false;
+    let torchCapabilityKnown = false;
 
-      const statusText = document.getElementById("statusText");
-      const supportBox = document.getElementById("supportBox");
-      const messageBox = document.getElementById("messageBox");
-      const errorBox = document.getElementById("errorBox");
-      const liveDate = document.getElementById("liveDate");
-      const currentBarcode = document.getElementById("currentBarcode");
-      const countText = document.getElementById("countText");
-      const historyList = document.getElementById("historyList");
+    metaEl.textContent = 'Scans stockés localement dans ce navigateur. Le scan utilise Quagga2 en Code 128 uniquement.';
 
-      const html5QrCode = new Html5Qrcode("reader", {
-        formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
-        verbose: false,
-        useBarCodeDetectorIfSupported: true
-      });
+    function setStatus(text, mode = 'idle') {
+      statusTextEl.textContent = text;
+      statusEl.className = 'status';
+      if (mode === 'ok') statusEl.classList.add('ok');
+      if (mode === 'bad') statusEl.classList.add('bad');
+      if (mode === 'scan') statusEl.classList.add('scan');
+    }
 
-      let scanLocked = false;
-      let scannerRunning = false;
+    function tickClock() {
+      liveDateEl.textContent = new Date().toLocaleString('fr-FR');
+      currentBarcodeEl.textContent = barcodeInput.value.trim() || '—';
+    }
+    setInterval(tickClock, 1000);
+    tickClock();
 
-      function setStatus(message) {
-        statusText.textContent = message;
+    function escapeHtml(text) {
+      return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function getRows() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const rows = raw ? JSON.parse(raw) : [];
+        return Array.isArray(rows) ? rows : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveRows(rows) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+    }
+
+    function escapeCsv(value) {
+      return '"' + String(value ?? '').replace(/"/g, '""') + '"';
+    }
+
+    function renderRows() {
+      const rows = getRows();
+      const q = searchInput.value.trim().toLowerCase();
+      const filtered = !q ? rows : rows.filter(r =>
+        [r.barcode, r.manualValue, r.dateLabel].some(v => String(v || '').toLowerCase().includes(q))
+      );
+
+      countTextEl.textContent = rows.length;
+
+      if (!filtered.length) {
+        historyListEl.innerHTML = '<div class="empty">Aucun enregistrement pour l’instant.</div>';
+        return;
       }
 
-      function setMessage(message) {
-        if (!message) {
-          messageBox.style.display = "none";
-          messageBox.textContent = "";
-          return;
-        }
-        messageBox.style.display = "block";
-        messageBox.textContent = message;
-      }
-
-      function setError(message) {
-        if (!message) {
-          errorBox.style.display = "none";
-          errorBox.textContent = "";
-          return;
-        }
-        errorBox.style.display = "block";
-        errorBox.textContent = message;
-      }
-
-      function nowLabel() {
-        return new Date().toLocaleString("fr-FR");
-      }
-
-      function tickClock() {
-        liveDate.textContent = nowLabel();
-        currentBarcode.textContent = barcodeInput.value.trim() || "—";
-      }
-      setInterval(tickClock, 1000);
-      tickClock();
-
-      function getRows() {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          const rows = raw ? JSON.parse(raw) : [];
-          return Array.isArray(rows) ? rows : [];
-        } catch {
-          return [];
-        }
-      }
-
-      function saveRows(rows) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
-      }
-
-      function escapeCsv(value) {
-        return '"' + String(value ?? "").replace(/"/g, '""') + '"';
-      }
-
-      function escapeHtml(str) {
-        return String(str ?? "")
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/\"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
-
-      function renderRows() {
-        const rows = getRows();
-        const q = searchInput.value.trim().toLowerCase();
-
-        const filtered = !q
-          ? rows
-          : rows.filter(row =>
-              [row.barcode, row.manualValue, row.dateLabel]
-                .some(v => String(v || "").toLowerCase().includes(q))
-            );
-
-        countText.textContent = rows.length;
-
-        if (!filtered.length) {
-          historyList.innerHTML = '<div class="empty">Aucun enregistrement pour l’instant.</div>';
-          return;
-        }
-
-        historyList.innerHTML = filtered.map(row => `
-          <div class="history-item">
-            <div>
-              <div class="history-label">Barcode</div>
-              <div class="history-value">${escapeHtml(row.barcode)}</div>
-            </div>
-            <div>
-              <div class="history-label">Valeur manuelle</div>
-              <div class="history-value">${escapeHtml(row.manualValue)}</div>
-            </div>
-            <div>
-              <div class="history-label">Date / heure</div>
-              <div class="history-value">${escapeHtml(row.dateLabel)}</div>
-            </div>
+      historyListEl.innerHTML = filtered.map(row => `
+        <div class="history-item">
+          <div>
+            <div class="k">Barcode</div>
+            <div class="v">${escapeHtml(row.barcode)}</div>
           </div>
-        `).join("");
+          <div>
+            <div class="k">Valeur manuelle</div>
+            <div class="v">${escapeHtml(row.manualValue)}</div>
+          </div>
+          <div>
+            <div class="k">Date / heure</div>
+            <div class="v">${escapeHtml(row.dateLabel)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function primeCameraPermissionIOS() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('API caméra non disponible sur ce navigateur.');
       }
-
-      async function detectEnvironment() {
-        const parts = [];
-        if (!window.isSecureContext) {
-          parts.push("Page non sécurisée : ouvre l'application en HTTPS.");
-        } else {
-          parts.push("Contexte sécurisé OK.");
+      setStatus('Demande de permission caméra…', 'scan');
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30, max: 60 }
         }
+      });
+      activePrimeStream = stream;
+      const v = document.createElement('video');
+      v.muted = true;
+      v.playsInline = true;
+      v.srcObject = stream;
+      await v.play().catch(() => null);
+      await new Promise(resolve => setTimeout(resolve, 180));
+      stopPrimeStream();
+      permissionPrimed = true;
+      setStatus('Permission caméra accordée. Chargement du moteur…', 'ok');
+    }
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          parts.push("Caméra navigateur non disponible.");
-        } else {
-          parts.push("Accès caméra navigateur disponible.");
+    function stopPrimeStream() {
+      try {
+        if (activePrimeStream && activePrimeStream.getTracks) {
+          activePrimeStream.getTracks().forEach(t => t.stop());
         }
+      } catch (_) {}
+      activePrimeStream = null;
+    }
 
-        parts.push("Librairie html5-qrcode chargée.");
-        supportBox.textContent = parts.join(" ");
-      }
-
-      async function stopScan() {
-        if (!scannerRunning) {
-          btnStart.disabled = false;
-          btnStop.disabled = true;
+    async function loadQuagga() {
+      if (engineLoaded && window.Quagga) return;
+      await new Promise((resolve, reject) => {
+        const existing = document.querySelector('script[data-quagga="1"]');
+        if (existing && window.Quagga) {
+          engineLoaded = true;
+          resolve();
           return;
         }
-
-        try {
-          await html5QrCode.stop();
-        } catch (_) {
-          // ignore
+        const script = existing || document.createElement('script');
+        if (!existing) {
+          script.src = 'https://unpkg.com/@ericblade/quagga2@1.8.4/dist/quagga.min.js';
+          script.async = true;
+          script.defer = true;
+          script.dataset.quagga = '1';
+          document.head.appendChild(script);
         }
+        script.onload = () => { engineLoaded = true; resolve(); };
+        script.onerror = () => reject(new Error('Impossible de charger Quagga2 (connexion Internet requise pour la librairie CDN).'));
+      });
+    }
 
-        try {
-          await html5QrCode.clear();
-        } catch (_) {
-          // ignore
-        }
+    function resetScannerOverlay() {
+      const overlay = scannerEl.querySelector('canvas.drawingBuffer');
+      if (overlay) overlay.style.opacity = '0';
+    }
 
-        scannerRunning = false;
-        scanLocked = false;
-        btnStart.disabled = false;
-        btnStop.disabled = true;
+    function getActiveVideoTrack() {
+      const video = scannerEl.querySelector('video');
+      if (!video || !video.srcObject || !video.srcObject.getVideoTracks) return null;
+      const tracks = video.srcObject.getVideoTracks();
+      return tracks && tracks.length ? tracks[0] : null;
+    }
+
+    function updateTorchButtonState() {
+      btnTorch.disabled = !started || !torchCapabilityKnown;
+      btnTorch.classList.toggle('active', torchEnabled);
+      btnTorch.textContent = torchEnabled ? 'Torche ON' : 'Torche';
+      if (!started) {
+        btnTorch.disabled = true;
+        btnTorch.classList.remove('active');
+        btnTorch.textContent = 'Torche';
       }
+    }
 
-      async function startScan() {
-        setError("");
-        setMessage("");
-
-        if (!window.isSecureContext) {
-          setStatus("Erreur");
-          setError("Cette page doit être ouverte en HTTPS pour accéder à la caméra.");
-          return;
+    function syncTorchAvailability(attempt = 0) {
+      const track = getActiveVideoTrack();
+      if (!track) {
+        if (attempt < 12) setTimeout(() => syncTorchAvailability(attempt + 1), 180);
+        return;
+      }
+      let supported = false;
+      try {
+        if (typeof track.getCapabilities === 'function') {
+          const caps = track.getCapabilities() || {};
+          supported = !!caps.torch;
         }
+      } catch (_) {}
+      torchCapabilityKnown = supported;
+      if (!supported) torchEnabled = false;
+      updateTorchButtonState();
+    }
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          setStatus("Erreur");
-          setError("Caméra non disponible sur ce navigateur/appareil.");
-          return;
-        }
+    async function toggleTorch() {
+      const track = getActiveVideoTrack();
+      if (!track || !torchCapabilityKnown) {
+        setStatus('Torche non disponible sur cet appareil / navigateur.', 'bad');
+        return;
+      }
+      const next = !torchEnabled;
+      try {
+        await track.applyConstraints({ advanced: [{ torch: next }] });
+        torchEnabled = next;
+        updateTorchButtonState();
+        setStatus(torchEnabled ? 'Torche activée.' : 'Torche désactivée.', torchEnabled ? 'ok' : 'scan');
+      } catch (error) {
+        console.error(error);
+        torchEnabled = false;
+        updateTorchButtonState();
+        setStatus('Impossible d’activer la torche sur ce navigateur.', 'bad');
+      }
+    }
 
-        try {
-          await stopScan();
-          scanLocked = false;
-          setStatus("Initialisation de la caméra...");
-          btnStart.disabled = true;
-          btnStop.disabled = false;
-
-          await html5QrCode.start(
-            { facingMode: "environment" },
-            {
-              fps: 10,
-              qrbox: { width: 300, height: 140 },
-              aspectRatio: 1.777,
-              disableFlip: false
+    async function startScanner() {
+      if (started) return;
+      if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        setStatus('La caméra exige HTTPS ou localhost.', 'bad');
+        return;
+      }
+      btnStart.disabled = true;
+      try {
+        if (!permissionPrimed) await primeCameraPermissionIOS();
+        await loadQuagga();
+        setStatus('Scanner actif…', 'scan');
+        await new Promise((resolve, reject) => {
+          window.Quagga.init({
+            inputStream: {
+              name: 'Live',
+              type: 'LiveStream',
+              target: scannerEl,
+              constraints: {
+                facingMode: 'environment',
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                aspectRatio: { ideal: 0.75 },
+                frameRate: { ideal: 30, max: 60 }
+              },
+              area: {
+                top: '43%',
+                right: '5%',
+                left: '5%',
+                bottom: '43%'
+              },
+              singleChannel: false
             },
-            async (decodedText) => {
-              if (scanLocked) return;
-              scanLocked = true;
-              barcodeInput.value = String(decodedText || "").trim();
-              tickClock();
-              setStatus("Code détecté");
-              setMessage("Barcode capturé. Tu peux saisir la valeur manuelle puis enregistrer.");
-              await stopScan();
+            locator: {
+              patchSize: 'medium',
+              halfSample: true
             },
-            () => {
-              // pas d'affichage d'erreur continue pendant le balayage
+            numOfWorkers: 2,
+            frequency: 20,
+            locate: false,
+            decoder: {
+              readers: ['code_128_reader'],
+              multiple: false
             }
-          );
-
-          scannerRunning = true;
-          setStatus("Caméra active — vise le code-barres Code 128");
-        } catch (err) {
-          scannerRunning = false;
-          btnStart.disabled = false;
-          btnStop.disabled = true;
-          setStatus("Erreur caméra");
-          setError("Impossible de démarrer le scan. Vérifie l'autorisation caméra et réessaie.");
-        }
-      }
-
-      async function scanFromFile(file) {
-        if (!file) return;
-        setError("");
-        setMessage("");
-
-        try {
-          await stopScan();
-          setStatus("Décodage de la photo...");
-          const decodedText = await html5QrCode.scanFile(file, true);
-          barcodeInput.value = String(decodedText || "").trim();
-          tickClock();
-          setStatus("Code détecté depuis la photo");
-          setMessage("Barcode extrait depuis l'image.");
-        } catch (err) {
-          setStatus("Erreur de décodage");
-          setError("Aucun Code 128 lisible trouvé dans l'image sélectionnée.");
-        } finally {
-          fileInput.value = "";
-        }
-      }
-
-      function saveEntry() {
-        setError("");
-        setMessage("");
-
-        const barcode = barcodeInput.value.trim();
-        const manualValue = manualInput.value.trim();
-
-        if (!barcode) {
-          setError("Le barcode est vide.");
-          return;
-        }
-
-        if (!manualValue) {
-          setError("La valeur manuelle est vide.");
-          return;
-        }
-
-        const now = new Date();
-        const rows = getRows();
-
-        rows.unshift({
-          id: Date.now(),
-          barcode,
-          manualValue,
-          dateIso: now.toISOString(),
-          dateLabel: now.toLocaleString("fr-FR")
+          }, err => err ? reject(err) : resolve());
         });
 
-        saveRows(rows);
+        onDetectedHandler = data => {
+          const code = data && data.codeResult && data.codeResult.code ? String(data.codeResult.code).trim() : '';
+          if (!code) return;
+          const now = Date.now();
+          if (code === lastDetected && (now - lastDetectedAt) < 1200) return;
+          lastDetected = code;
+          lastDetectedAt = now;
+          if (navigator.vibrate) navigator.vibrate(120);
+          barcodeInput.value = code;
+          tickClock();
+          setStatus('Code détecté.', 'ok');
+          stopScanner();
+        };
 
-        manualInput.value = "";
-        barcodeInput.value = "";
-        tickClock();
-        setStatus("Ligne enregistrée");
-        setMessage("Ligne enregistrée localement.");
-        renderRows();
+        onProcessedHandler = () => {
+          resetScannerOverlay();
+          const video = scannerEl.querySelector('video');
+          if (video) {
+            video.setAttribute('playsinline', 'true');
+            video.style.objectFit = 'cover';
+          }
+          const track = video && video.srcObject && video.srcObject.getVideoTracks ? video.srcObject.getVideoTracks()[0] : null;
+          if (track && typeof track.applyConstraints === 'function') {
+            track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+          }
+          if (started && !torchCapabilityKnown) syncTorchAvailability();
+        };
+
+        window.Quagga.onDetected(onDetectedHandler);
+        window.Quagga.onProcessed(onProcessedHandler);
+        window.Quagga.start();
+        started = true;
+        btnStop.disabled = false;
+        torchEnabled = false;
+        torchCapabilityKnown = false;
+        updateTorchButtonState();
+        syncTorchAvailability();
+      } catch (error) {
+        console.error(error);
+        setStatus(error.message || 'Erreur de démarrage du scanner.', 'bad');
+        stopScanner();
+      } finally {
+        btnStart.disabled = false;
       }
+    }
 
-      function exportCsv() {
-        setError("");
-        setMessage("");
-
-        const rows = getRows();
-        if (!rows.length) {
-          setError("Aucune ligne à exporter.");
-          return;
+    function stopScanner() {
+      try { if (window.Quagga && onDetectedHandler) window.Quagga.offDetected(onDetectedHandler); } catch (_) {}
+      try { if (window.Quagga && onProcessedHandler) window.Quagga.offProcessed(onProcessedHandler); } catch (_) {}
+      onDetectedHandler = null;
+      onProcessedHandler = null;
+      try { if (window.Quagga && started) window.Quagga.stop(); } catch (_) {}
+      started = false;
+      btnStop.disabled = true;
+      const video = scannerEl.querySelector('video');
+      try {
+        if (video && video.srcObject && video.srcObject.getTracks) {
+          video.srcObject.getTracks().forEach(t => t.stop());
         }
+      } catch (_) {}
+      scannerEl.innerHTML = '';
+      stopPrimeStream();
+      torchEnabled = false;
+      torchCapabilityKnown = false;
+      updateTorchButtonState();
+      if (!barcodeInput.value.trim()) setStatus('Scan arrêté.', 'ok');
+    }
 
-        const header = ["Barcode", "DateScan", "ValeurManuelle"];
-        const lines = rows.map(r => [r.barcode, r.dateLabel, r.manualValue].map(escapeCsv).join(";"));
-        const content = [header.map(escapeCsv).join(";"), ...lines].join("\n");
-        const blob = new Blob(["\uFEFF" + content], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "scans_barcode_" + new Date().toISOString().slice(0, 10) + ".csv";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-
-        setStatus("CSV exporté");
-        setMessage("Le fichier CSV a été téléchargé.");
+    function saveEntry() {
+      const barcode = barcodeInput.value.trim();
+      const manualValue = manualInput.value.trim();
+      if (!barcode) {
+        setStatus('Le barcode est vide.', 'bad');
+        return;
       }
-
-      function clearAll() {
-        setError("");
-        setMessage("");
-        if (!confirm("Supprimer tout l'historique local ?")) return;
-        saveRows([]);
-        renderRows();
-        setStatus("Historique effacé");
+      if (!manualValue) {
+        setStatus('La valeur manuelle est vide.', 'bad');
+        return;
       }
-
-      btnStart.addEventListener("click", startScan);
-      btnStop.addEventListener("click", stopScan);
-      btnSave.addEventListener("click", saveEntry);
-      btnExport.addEventListener("click", exportCsv);
-      btnClearAll.addEventListener("click", clearAll);
-      btnClearBarcode.addEventListener("click", function () {
-        barcodeInput.value = "";
-        tickClock();
+      const now = new Date();
+      const rows = getRows();
+      rows.unshift({
+        id: Date.now(),
+        barcode,
+        manualValue,
+        dateIso: now.toISOString(),
+        dateLabel: now.toLocaleString('fr-FR')
       });
-      barcodeInput.addEventListener("input", tickClock);
-      searchInput.addEventListener("input", renderRows);
-      fileInput.addEventListener("change", async function (event) {
-        const file = event.target.files && event.target.files[0];
-        if (file) await scanFromFile(file);
-      });
-
-      window.addEventListener("beforeunload", stopScan);
-
-      detectEnvironment();
+      saveRows(rows);
+      barcodeInput.value = '';
+      manualInput.value = '';
+      tickClock();
       renderRows();
-    })();
+      setStatus('Ligne enregistrée localement.', 'ok');
+    }
+
+    function exportCsv() {
+      const rows = getRows();
+      if (!rows.length) {
+        setStatus('Aucune ligne à exporter.', 'bad');
+        return;
+      }
+      const header = ['Barcode', 'DateScan', 'ValeurManuelle'];
+      const lines = rows.map(r => [r.barcode, r.dateLabel, r.manualValue].map(escapeCsv).join(';'));
+      const content = [header.map(escapeCsv).join(';'), ...lines].join('\n');
+      const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'scans_barcode_' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setStatus('CSV exporté.', 'ok');
+    }
+
+    function clearAll() {
+      if (!confirm('Supprimer tout l\'historique local ?')) return;
+      saveRows([]);
+      renderRows();
+      setStatus('Historique effacé.', 'ok');
+    }
+
+    btnStart.addEventListener('click', startScanner);
+    btnStop.addEventListener('click', stopScanner);
+    btnTorch.addEventListener('click', toggleTorch);
+    btnSave.addEventListener('click', saveEntry);
+    btnExport.addEventListener('click', exportCsv);
+    btnClearAll.addEventListener('click', clearAll);
+    btnUseManual.addEventListener('click', () => {
+      const value = barcodeInput.value.trim();
+      if (!value) {
+        setStatus('Saisis ou colle un barcode.', 'bad');
+        return;
+      }
+      setStatus('Barcode manuel prêt.', 'ok');
+    });
+    btnClearBarcode.addEventListener('click', () => {
+      barcodeInput.value = '';
+      tickClock();
+    });
+    barcodeInput.addEventListener('input', tickClock);
+    searchInput.addEventListener('input', renderRows);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stopScanner(); });
+    window.addEventListener('beforeunload', stopScanner);
+
+    renderRows();
   </script>
 </body>
 </html>
